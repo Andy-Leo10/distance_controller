@@ -13,14 +13,20 @@
 class DistanceController : public rclcpp::Node
 {
 public:
+    bool achieved_ = false;
     DistanceController()
-        : Node("distance_controller_node"), MAX_LINEAR_SPEED_(0.8), MAX_ANGULAR_SPEED_(3.14)
+        : Node("distance_controller_node"), MAX_LINEAR_SPEED_(0.8), MAX_ANGULAR_SPEED_(3.14),
+        TIMER_MS_(100)
     {
         // create a subscriber
         odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/odometry/filtered", 
             10, std::bind(&DistanceController::odomCallback, this, std::placeholders::_1));
         // create a publisher
         cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
+        // create a timer
+        timer_ = this->create_wall_timer(std::chrono::milliseconds(TIMER_MS_), 
+            std::bind(&DistanceController::timerCallback, this));
+        timer_->cancel();
     }
 
 private:
@@ -33,6 +39,13 @@ private:
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
     const float MAX_LINEAR_SPEED_;
     const float MAX_ANGULAR_SPEED_;
+    // timer
+    rclcpp::TimerBase::SharedPtr timer_;
+    const int TIMER_MS_ = 100;
+    // control variables
+    float desired_pos_ = 0.0, tolerance_ = 0.1;
+    float error_ = 0.0, previous_error_ = 0.0, integral_ = 0.0, derivative_ = 0.0;
+    float kp_ = 0.5, ki_ = 0.0, kd_ = 0.0;
 
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
@@ -84,6 +97,53 @@ private:
         cmd_vel_pub_->publish(cmd_vel_msg);
     }
 
+    void timerCallback()
+    {
+        if (fabs(error_) > tolerance_)
+        {
+            control_algorithm_pid();
+        }
+        else
+        {
+            robot_move(0.0, 0.0);
+            achieved_ = true;
+            // deactivate the timer
+            timer_->cancel();
+        }
+    }
+
+    void pid_distance_control(float desired_value)
+    {
+        /*
+        the control is relative to the current position of the robot
+        */
+        desired_pos_ = desired_value;
+        error_ = desired_pos_ - current_x_;
+        previous_error_ = 0.0;
+        integral_ = 0.0;
+        // activate the timer
+        timer_->reset();
+    }
+
+    void control_algorithm_pid()
+    {
+        // proportional control
+        float P = kp_ * error_;
+        // integral control
+        integral_ += error_ * (float)TIMER_MS_ / 1000.0;
+        float I = ki_ * integral_;
+        // derivative control
+        derivative_ = (error_ - previous_error_) / ((float)TIMER_MS_ / 1000.0);
+        float D = kd_ * derivative_;
+        // control algorithm
+        float control_signal = P + I + D;
+        // update error
+        previous_error_ = error_;
+        // saturate the control
+        control_signal = saturate(control_signal, -MAX_ANGULAR_SPEED_, MAX_ANGULAR_SPEED_);
+        // move the robot
+        robot_move(control_signal, 0.0);
+    }
 
 };
 
@@ -91,8 +151,11 @@ int main(int argc, char *argv[])
 {
     setenv("RCUTILS_CONSOLE_OUTPUT_FORMAT", "[{severity}]: [{message}]", 1);
     rclcpp::init(argc, argv);
-    DistanceController distance_controller;
-    rclcpp::spin( std::make_shared<DistanceController>());
+    auto distance_controller = std::make_shared<DistanceController>();
+    
+    distance_controller->pid_distance_control(1.0);
+    while(!distance_controller.achieved_){rclcpp::spin_some(distance_controller);}
+
     rclcpp::shutdown();
     return 0;
 }
