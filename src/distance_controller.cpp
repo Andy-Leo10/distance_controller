@@ -1,22 +1,23 @@
-//general libraries
+// export RCUTILS_CONSOLE_OUTPUT_FORMAT="[${severity}] [${time}] [${name}]: ${message}"
+// general libraries
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <nav_msgs/msg/odometry.hpp>
-#include <sensor_msgs/msg/laser_scan.hpp>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <math.h>
 #include <chrono>
+#include <cstdlib>
 
 class DistanceController : public rclcpp::Node
 {
 public:
     DistanceController()
-        : Node("distance_controller")
+        : Node("distance_controller_node"), MAX_LINEAR_SPEED_(0.8), MAX_ANGULAR_SPEED_(3.14)
     {
         // create a subscriber
-        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/rosbot_xl_base_controller/odom", 
+        odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("/odometry/filtered", 
             10, std::bind(&DistanceController::odomCallback, this, std::placeholders::_1));
         // create a publisher
         cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
@@ -30,6 +31,8 @@ private:
     float current_theta_;
     // publisher
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;
+    const float MAX_LINEAR_SPEED_;
+    const float MAX_ANGULAR_SPEED_;
 
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
@@ -75,9 +78,10 @@ private:
 
     void robot_move(float linear_speed, float angular_speed)
     {
-        pub_msg_.linear.x = linear_speed;
-        pub_msg_.angular.z = angular_speed;
-        publisher_->publish(pub_msg_);
+        geometry_msgs::msg::Twist cmd_vel_msg;
+        cmd_vel_msg.linear.x = linear_speed;
+        cmd_vel_msg.angular.z = angular_speed;
+        cmd_vel_pub_->publish(cmd_vel_msg);
     }
 
 
@@ -85,6 +89,7 @@ private:
 
 int main(int argc, char *argv[])
 {
+    setenv("RCUTILS_CONSOLE_OUTPUT_FORMAT", "[{severity}]: [{message}]", 1);
     rclcpp::init(argc, argv);
     DistanceController distance_controller;
     rclcpp::spin( std::make_shared<DistanceController>());
