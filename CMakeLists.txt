@@ -24,4 +24,20 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# generate .cpp executables
+add_executable(distance_controller src/distance_controller.cpp)
+ament_target_dependencies(distance_controller rclcpp tf2 geometry_msgs nav_msgs)
+
+# install .cpp executables
+install(TARGETS
+  distance_controller
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# install .py programs
+install(PROGRAMS
+  src/control_plot.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
