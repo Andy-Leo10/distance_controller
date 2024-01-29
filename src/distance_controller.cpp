@@ -1,8 +1,13 @@
-#include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
-#include <geometry_msgs/Twist.h>
-#include <tf2/LinearMath/Quaternion.h>
+//general libraries
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/string.hpp>
+#include <geometry_msgs/msg/twist.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <sensor_msgs/msg/laser_scan.hpp>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <math.h>
+#include <chrono>
 
 class DistanceController : public rclcpp::Node
 {
