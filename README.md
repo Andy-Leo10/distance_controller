@@ -16,6 +16,7 @@ Maze simulation
 After compile
 
     ros2 run distance_controller distance_controller
+    ros2 run distance_controller distance_controller --ros-args -p kp:=0.5 -p ki:=0.0 -p kd:=0.0
 
 ## Others
 Capture points
