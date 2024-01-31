@@ -39,7 +39,9 @@ install(TARGETS
 
 # install .py programs
 install(PROGRAMS
-  src/control_plot.py
+  src/control_plot_1var.py
+  src/control_plot_2var.py
+  src/control_plot_tracking.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
