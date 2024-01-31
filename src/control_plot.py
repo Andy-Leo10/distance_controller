@@ -37,6 +37,13 @@ def animate(i):
     ax1.clear()
     # Plot the x positions
     ax1.plot(x_pos)
+    
+    # Set the limits for Y-axis
+    ax1.set_ylim(-1, 5)
+    # add a grid to the plot
+    ax1.grid(True)
+    # Add a title to the plot
+    ax1.set_title('Odometry visualizer')
 
 def main(args=None):
     # Initialize the ROS2 library
@@ -55,6 +62,9 @@ if __name__ == '__main__':
     fig = plt.figure()
     # Add a subplot to the figure
     ax1 = fig.add_subplot(1,1,1)
+    # Set the limits for Y-axis
+    ax1.set_ylim(-1, 5)
+    
     # Create an animation that calls the 'animate' function every 1000ms
     ani = animation.FuncAnimation(fig, animate, interval=1000)
 
@@ -62,5 +72,7 @@ if __name__ == '__main__':
     thread = threading.Thread(target=main)
     thread.start()
 
+    # Add a title to the plot
+    ax1.set_title('Odometry visualizer')
     # Show the plot
     plt.show()

@@ -28,8 +28,8 @@ public:
         timer_->cancel();
         // Declare parameters
         this->declare_parameter<float>("kp", 0.8);
-        this->declare_parameter<float>("ki", 0.0);
-        this->declare_parameter<float>("kd", 0.0);
+        this->declare_parameter<float>("ki", 0.02);
+        this->declare_parameter<float>("kd", 0.5);
         // Get parameters
         this->get_parameter("kp", kp_);
         this->get_parameter("ki", ki_);
@@ -178,8 +178,13 @@ int main(int argc, char *argv[])
 
     distance_controller->setDesiredPosition(1.0);
     while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
+    rclcpp::sleep_for(std::chrono::seconds(1));
     distance_controller->setDesiredPosition(-1.0);
     while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
+    rclcpp::sleep_for(std::chrono::seconds(1));
+    // distance_controller->setDesiredPosition(1.0);
+    // while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
+    // rclcpp::sleep_for(std::chrono::seconds(1));
 
     rclcpp::shutdown();
     return 0;
