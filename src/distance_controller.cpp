@@ -68,11 +68,12 @@ private:
     rclcpp::TimerBase::SharedPtr timer_;
     const int TIMER_MS_ = 100;
     // control variables
-    float desired_pos_ = 0.0, tolerance_ = 0.05, initial_pos_ = 0.0;
+    float tolerance_ = 0.02, desired_value_ = 0.0;
     float error_ = 0.0, previous_error_ = 0.0, integral_ = 0.0, derivative_ = 0.0;
     float kp_ = 0.5, ki_ = 0.0, kd_ = 0.0;
     bool achieved_ = false;
-    float desired_value_ = 0.0;
+    float initial_pos_x_ = 0.0, initial_pos_y_ = 0.0;
+    float desired_pos_x_ = 0.0, desired_pos_y_ = 0.0;
 
     void odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
     {
@@ -83,10 +84,10 @@ private:
         // RCLCPP_INFO(this->get_logger(), "Odom values: x: '%.2f', y: '%.2f', theta: '%.2f'", current_x_, current_y_, current_theta_);
         if (!odom_received_)
         {
-            initial_pos_ = current_x_;
-            desired_pos_ = initial_pos_ + desired_value_;
-            RCLCPP_INFO(this->get_logger(), "Initial position: '%.2f' - Desired position: '%.2f'", initial_pos_, desired_pos_);
-            error_ = desired_pos_ - current_x_;
+            initial_pos_x_ = current_x_; initial_pos_y_ = current_y_;
+            desired_pos_x_ = initial_pos_x_ + desired_value_*cos(current_theta_);
+            desired_pos_y_ = initial_pos_y_ + desired_value_*sin(current_theta_);
+            error_ = sqrt(pow(desired_pos_x_ - current_x_, 2) + pow(desired_pos_y_ - current_y_, 2));
             previous_error_ = 0.0;
             integral_ = 0.0;
             achieved_ = false;
@@ -148,7 +149,9 @@ private:
     void control_algorithm_pid()
     {
         // calculate the error
-        error_ = desired_pos_ - current_x_;
+        error_ = sqrt(pow(desired_pos_x_ - current_x_, 2) + pow(desired_pos_y_ - current_y_, 2));
+        // determine the direction
+        float direction = (desired_value_ < 0) ? -1.0 : 1.0;
         // proportional control
         float P = kp_ * error_;
         // integral control
@@ -158,7 +161,7 @@ private:
         derivative_ = (error_ - previous_error_) / ((float)TIMER_MS_ / 1000.0);
         float D = kd_ * derivative_;
         // control algorithm
-        float control_signal = P + I + D;
+        float control_signal = direction * (P + I + D);
         // update error
         previous_error_ = error_;
         // saturate the control
@@ -179,12 +182,12 @@ int main(int argc, char *argv[])
     distance_controller->setDesiredPosition(1.0);
     while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
     rclcpp::sleep_for(std::chrono::seconds(1));
-    distance_controller->setDesiredPosition(-1.0);
+    distance_controller->setDesiredPosition(1.0);
     while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
     rclcpp::sleep_for(std::chrono::seconds(1));
-    // distance_controller->setDesiredPosition(1.0);
-    // while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
-    // rclcpp::sleep_for(std::chrono::seconds(1));
+    distance_controller->setDesiredPosition(1.0);
+    while(!distance_controller->hasReachedDesiredPosition()){rclcpp::spin_some(distance_controller);}
+    rclcpp::sleep_for(std::chrono::seconds(1));
 
     rclcpp::shutdown();
     return 0;
