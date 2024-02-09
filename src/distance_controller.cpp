@@ -30,6 +30,7 @@ public:
         this->declare_parameter<float>("kp", 0.8);
         this->declare_parameter<float>("ki", 0.02);
         this->declare_parameter<float>("kd", 0.5);
+        // real robot kp=1.2, ki=0.008, kd=0.1
         // Get parameters
         this->get_parameter("kp", kp_);
         this->get_parameter("ki", ki_);
